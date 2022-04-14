@@ -1,9 +1,13 @@
 import logging
+import six
 
 import ckan.model as model
 import ckan.plugins as plugins
 from ckan.plugins.toolkit import config
 import ckan.lib.base as base
+import ckan.lib.api_token as api_token
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -93,10 +97,13 @@ class AuthMiddleware(object):
                 apikey = ''
         if not apikey:
             return None
-        apikey = unicode(apikey)
-        # check if API key is valid by comparing against keys of registered users
+        apikey = six.ensure_text(apikey, errors=u"ignore")
+        logger.debug(u'Received API Key: %s' % apikey)
         query = model.Session.query(model.User)
         user = query.filter_by(apikey=apikey).first()
+
+        if not user:
+            user = api_token.get_user_from_token(apikey)
         return user
 
 
